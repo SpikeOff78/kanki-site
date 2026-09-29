@@ -76,7 +76,7 @@ h2{margin:.6rem 0 2rem;font:400 clamp(2rem,6.5vw,4.4rem)/.95 var(--display);text
 h2 i{font-style:normal;color:var(--mag)}
 
 .frame{position:relative;background:var(--panel);border:1px solid var(--line);padding:1.5rem;min-width:0}
-.frame::before,.frame::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--c,var(--acid));transition:all .25s}
+.frame::before,.frame::after{content:"";position:absolute;pointer-events:none;width:14px;height:14px;border:2px solid var(--c,var(--acid));transition:all .25s}
 .frame::before{top:-2px;left:-2px;border-right:0;border-bottom:0}
 .frame::after{bottom:-2px;right:-2px;border-left:0;border-top:0}
 .frame:hover::before,.frame:hover::after{width:calc(100% + 4px);height:calc(100% + 4px)}
@@ -109,7 +109,7 @@ h2 i{font-style:normal;color:var(--mag)}
 
 .contact{display:grid;gap:1.5rem;padding:clamp(1.8rem,6vw,4rem)}
 .contact h2{margin:0;font-size:clamp(2.6rem,10vw,7rem)}
-.mail{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+.mail{position:relative;z-index:5;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
 .mail code{font:700 1rem var(--mono);padding:.9rem 1.1rem;background:#000;border:1px solid var(--line);color:var(--acid);user-select:all;overflow-wrap:anywhere}
 footer{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font:500 .75rem var(--mono);color:var(--muted);border-top:1px solid var(--line);padding-top:1.25rem}
 
@@ -212,13 +212,28 @@ img{max-width:100%}
     <div class="frame contact" style="--c:var(--acid)">
       <div class="lbl">// contact</div>
       <h2>Next <i>level</i> ?</h2>
-      <div class="mail"><code id="email">iliaswebpro@gmail.com</code><button class="btn" type="button" id="copy">Copier</button></div>
+      <div class="mail"><code id="email">iliaswebpro@gmail.com</code><button class="btn" type="button" id="copy">Copier</button><a class="btn o" href="mailto:iliaswebpro@gmail.com">Envoyer un mail</a></div>
     </div>
   </section>
   <footer><span>© 2026 Kanki</span><span>exit 0</span></footer>
 </div>
 <script>
-document.getElementById("copy").addEventListener("click",e=>{const b=e.currentTarget,el=document.getElementById("email");const ok=()=>{b.textContent="Copié ✓";setTimeout(()=>b.textContent="Copier",1800)};const fb=()=>{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Ctrl+C"};try{navigator.clipboard.writeText(el.textContent).then(ok,fb)}catch{fb()}});
+(function(){
+  var btn=document.getElementById("copy"), mail=document.getElementById("email").textContent.trim();
+  function done(ok){btn.textContent=ok?"Copié ✓":"Appui long sur l'adresse";setTimeout(function(){btn.textContent="Copier"},2000);}
+  function legacy(){
+    var t=document.createElement("textarea");t.value=mail;t.setAttribute("readonly","");
+    t.style.position="fixed";t.style.top="0";t.style.left="0";t.style.opacity="0";t.style.fontSize="16px";
+    document.body.appendChild(t);t.focus();t.select();t.setSelectionRange(0,mail.length);
+    var ok=false;try{ok=document.execCommand("copy");}catch(e){}
+    document.body.removeChild(t);return ok;
+  }
+  btn.addEventListener("click",function(){
+    if(navigator.clipboard&&window.isSecureContext){
+      navigator.clipboard.writeText(mail).then(function(){done(true)},function(){done(legacy())});
+    }else{done(legacy());}
+  });
+})();
 </script>
 </body>
 </html>
