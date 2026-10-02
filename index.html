@@ -3,237 +3,179 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Kanki · Sites & Bots Discord</title>
-<meta name="description" content="Kanki code ton site ou ton bot Discord : sites vitrines, landing pages, sites de communauté, bots sur mesure.">
-<meta name="theme-color" content="#060607">
+<title>KANKI — Sites &amp; bots Discord</title>
+<meta name="description" content="KANKI conçoit des sites et des bots Discord taillés sur mesure.">
+<meta name="theme-color" content="#040102">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Kanki · Sites & Bots Discord">
-<meta property="og:description" content="Je code ton site ou ton bot Discord.">
+<meta property="og:title" content="KANKI — Sites &amp; bots Discord">
+<meta property="og:description" content="Des sites et des bots Discord taillés sur mesure. Nets, rapides, impossibles à oublier.">
+<meta property="og:image" content="https://kanki-site.vercel.app/images/apercu.jpg">
 <meta property="og:locale" content="fr_FR">
-<meta name="twitter:card" content="summary">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23060607'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial Black,Impact,sans-serif' font-size='44' fill='%23D4FF00'%3EK%3C/text%3E%3C/svg%3E">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23040102'/%3E%3Cpath d='M17 12h9v17l14-17h11L36 30l16 22H41L30 37l-4 5v10h-9z' fill='%23ff1f35'/%3E%3C/svg%3E">
+
+<!-- Polices : Shippori Mincho (titres, japonais élégant) + Zen Kaku Gothic New (texte) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@400;600&display=swap">
-<style>
-/* Layout: interface de hacker — démarrage en console, titre géant qui glitche en RVB, blocs cadrés par des crochets de viseur. Peu de texte, beaucoup d'effet. */
-:root{
-  --bg:#060607; --panel:#0E0F11; --fg:#EDEDED; --muted:#7D8088; --line:#23252B;
-  --acid:#D4FF00; --mag:#FF1F8E; --cyan:#00F0FF;
-  --display:"Dela Gothic One",Impact,"Arial Black",sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
-  --body:"Sora",ui-sans-serif,system-ui,sans-serif;
-  color-scheme:dark;
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+
+<!-- Three.js chargé depuis un CDN (aucune installation) -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
 }
-*{box-sizing:border-box}
-html,body{overflow-x:hidden}
-body{background:var(--bg);color:var(--fg);font:400 1rem/1.65 var(--body);
-  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:56px 56px;background-position:-1px -1px}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:40;background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.25) 2px 3px);mix-blend-mode:multiply}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.75))}
-a{color:inherit}
-:focus-visible{outline:2px solid var(--acid);outline-offset:3px}
-::selection{background:var(--acid);color:#000}
-.wrap{position:relative;max-width:74rem;margin:0 auto;padding-inline:clamp(1rem,4vw,2.5rem);padding-block:1rem 3rem}
-
-nav{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;font:500 .8rem var(--mono);padding-block:.6rem;border-bottom:1px solid var(--line)}
-nav b{color:var(--acid)}
-nav div{display:flex;gap:1.2rem;flex-wrap:wrap}
-nav a{text-decoration:none;color:var(--muted)}nav a:hover{color:var(--acid)}
-nav a::before{content:"./";color:var(--line)}
-
-.boot{font:500 clamp(.75rem,1.8vw,.85rem)/1.8 var(--mono);color:var(--muted);padding-top:clamp(2rem,6vw,3.5rem)}
-.boot div{overflow:hidden;white-space:nowrap;width:0;animation:type .5s steps(30,end) forwards}
-.boot div:nth-child(1){animation-delay:.1s}.boot div:nth-child(2){animation-delay:.6s}
-@keyframes type{to{width:100%}}
-.ok{color:var(--acid)}.hl{color:var(--mag)}
-
-.hero{padding-block:1.2rem clamp(2.5rem,7vw,4.5rem)}
-.glitch{position:relative;margin:0;font:400 clamp(3.4rem,15.5vw,12.5rem)/.88 var(--display);letter-spacing:-.02em;text-transform:uppercase}
-.glitch span{display:block;position:relative}
-.glitch span::before,.glitch span::after{content:attr(data-t);position:absolute;inset:0;pointer-events:none}
-.glitch span::before{color:var(--mag);mix-blend-mode:screen;animation:g1 3.2s infinite steps(1)}
-.glitch span::after{color:var(--cyan);mix-blend-mode:screen;animation:g2 3.2s infinite steps(1)}
-.glitch .b{color:var(--acid)}
-@keyframes g1{0%,86%,100%{transform:none;clip-path:inset(0 0 100% 0)}87%{transform:translate(-6px,2px);clip-path:inset(12% 0 60% 0)}89%{transform:translate(5px,-2px);clip-path:inset(55% 0 20% 0)}91%{transform:translate(-3px,0);clip-path:inset(30% 0 45% 0)}93%{clip-path:inset(0 0 100% 0)}}
-@keyframes g2{0%,86%,100%{transform:none;clip-path:inset(0 0 100% 0)}88%{transform:translate(6px,-1px);clip-path:inset(65% 0 5% 0)}90%{transform:translate(-5px,2px);clip-path:inset(20% 0 55% 0)}92%{transform:translate(3px,0);clip-path:inset(40% 0 30% 0)}94%{clip-path:inset(0 0 100% 0)}}
-.hero-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2rem;align-items:end;margin-top:2rem}
-.hero p{margin:0;font-size:clamp(1.1rem,2.4vw,1.35rem)}
-.hero p mark{background:var(--acid);color:#000;padding:0 .2em}
-.cta{display:flex;gap:.7rem;flex-wrap:wrap}
-.btn{font:700 .9rem var(--mono);text-transform:uppercase;text-decoration:none;padding:.95rem 1.3rem;background:var(--acid);color:#000;border:0;cursor:pointer;position:relative;transition:transform .15s}
-.btn:hover{transform:translate(-3px,-3px);box-shadow:3px 3px 0 var(--mag),6px 6px 0 var(--cyan)}
-.btn.o{background:transparent;color:var(--acid);outline:1px solid var(--acid);outline-offset:-1px}
-
-.tape{background:var(--acid);color:#000;overflow:hidden;white-space:nowrap;padding-block:.7rem;font:400 1.15rem var(--display);text-transform:uppercase;transform:rotate(-1.5deg);margin-inline:-2rem}
-.tape div{display:inline-block;animation:slide 20s linear infinite}
-.tape span{margin-inline:1.2rem}
-@keyframes slide{to{transform:translateX(-50%)}}
-
-section{padding-block:clamp(3rem,8vw,5rem)}
-.lbl{font:500 .8rem var(--mono);color:var(--acid)}
-h2{margin:.6rem 0 2rem;font:400 clamp(2rem,6.5vw,4.4rem)/.95 var(--display);text-transform:uppercase;text-wrap:balance}
-h2 i{font-style:normal;color:var(--mag)}
-
-.frame{position:relative;background:var(--panel);border:1px solid var(--line);padding:1.5rem;min-width:0}
-.frame::before,.frame::after{content:"";position:absolute;pointer-events:none;width:14px;height:14px;border:2px solid var(--c,var(--acid));transition:all .25s}
-.frame::before{top:-2px;left:-2px;border-right:0;border-bottom:0}
-.frame::after{bottom:-2px;right:-2px;border-left:0;border-top:0}
-.frame:hover::before,.frame:hover::after{width:calc(100% + 4px);height:calc(100% + 4px)}
-
-.svc{display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem}
-.svc .frame{display:grid;gap:1.4rem;align-content:space-between;min-height:9.5rem}
-.svc .id{display:flex;justify-content:space-between;font:500 .75rem var(--mono);color:var(--muted)}
-.svc .id b{color:var(--c);font-weight:700}
-.svc h3{margin:0;font:400 1.6rem/1.05 var(--display);text-transform:uppercase}
-
-.bot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:2.5rem;align-items:center}
-.bot h2{margin-bottom:0}
-.term{font:500 .9rem/2 var(--mono);overflow-x:auto}
-.term .top{display:flex;justify-content:space-between;color:var(--muted);font-size:.75rem;border-bottom:1px solid var(--line);padding-bottom:.6rem;margin-bottom:.6rem}
-.term .p{color:var(--acid)}.term .m{color:var(--mag)}.term .c{color:var(--cyan)}
-.term div{white-space:nowrap}
-.cursor{display:inline-block;width:.6em;height:1.1em;background:var(--acid);vertical-align:-.15em;animation:blink 1s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
-
-.work{display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:1.25rem}
-.proj{text-decoration:none;padding:0;display:flex;flex-direction:column}
-.proj .shot{position:relative;min-height:13rem;padding:1.4rem;display:flex;flex-direction:column;justify-content:space-between;background:var(--pb);overflow:hidden;border-bottom:1px solid var(--line)}
-.proj .shot small{font:500 .72rem var(--mono);color:#fff;opacity:.7}
-.proj .shot b{font:400 clamp(1.8rem,4.5vw,2.6rem)/.95 var(--display);text-transform:uppercase;color:#fff;text-shadow:3px 0 var(--pa)}
-.proj:hover .shot b{animation:jit .3s steps(2) 2}
-@keyframes jit{50%{transform:translate(3px,-1px);text-shadow:-3px 0 var(--cyan),3px 0 var(--mag)}}
-.proj .body{padding:1rem 1.4rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
-.proj .body span:first-child{color:var(--muted);font-size:.95rem}
-.proj .url{font:700 .8rem var(--mono);color:var(--acid);white-space:nowrap}
-
-.contact{display:grid;gap:1.5rem;padding:clamp(1.8rem,6vw,4rem)}
-.contact h2{margin:0;font-size:clamp(2.6rem,10vw,7rem)}
-.mail{position:relative;z-index:5;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
-.mail code{font:700 1rem var(--mono);padding:.9rem 1.1rem;background:#000;border:1px solid var(--line);color:var(--acid);user-select:all;overflow-wrap:anywhere}
-footer{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font:500 .75rem var(--mono);color:var(--muted);border-top:1px solid var(--line);padding-top:1.25rem}
-
-/* Gaza */
-.gaza{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:0;padding:0;overflow:hidden}
-.gaza .txt{padding:clamp(1.5rem,5vw,3rem);display:grid;gap:1.1rem;align-content:center}
-.gaza h2{margin:0}
-.gaza h2 .r{color:#E4312B}.gaza h2 .g{color:#149954}
-.gaza p{margin:0;color:var(--muted);max-width:30rem}
-.gaza small{font:500 .75rem var(--mono);color:var(--muted)}
-.flag{display:flex;height:6px;width:7rem}
-.flag i{flex:1}
-.gaza .btn{width:max-content;background:#149954;color:#fff}
-.gaza .btn:hover{box-shadow:3px 3px 0 #E4312B,6px 6px 0 #fff}
-.gaza figure{margin:0;min-height:16rem;position:relative}
-.gaza img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(.15) contrast(1.05)}
-@media (max-width:760px){.gaza{grid-template-columns:minmax(0,1fr)}.gaza figure{min-height:14rem}}
-@media (max-width:760px){.hero-row,.bot{grid-template-columns:minmax(0,1fr)}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.boot div{width:100%}}
-
-:root{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
-body{margin:0}
-img{max-width:100%}
-</style>
+</script>
 </head>
-<body>
-<div class="wrap">
-  <nav><b>kanki@web:~$</b><div><a href="#services">services</a><a href="#work">projets</a><a href="#contact">contact</a></div></nav>
 
-  <div class="boot" aria-hidden="true">
-    <div>&gt; init kanki.exe <span class="ok">[OK]</span></div>
-    <div>&gt; statut : <span class="hl">dispo</span></div>
+<body class="en-intro">
+
+<!-- La scène 3D (samouraï, brume, soleil rouge…) -->
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- ═════════════ INTRO ═════════════ -->
+<div class="intro" id="intro" aria-label="Introduction animée">
+  <!-- Bandes noires façon cinéma -->
+  <div class="bande bande-haut" aria-hidden="true"></div>
+  <div class="bande bande-bas" aria-hidden="true"></div>
+
+  <!-- Chargement -->
+  <div class="chargement" id="chargement" role="status">
+    <span class="chargement-kanji" aria-hidden="true">刀</span>
+    <span class="chargement-ligne" aria-hidden="true"><i></i></span>
+    <span class="chargement-texte">Chargement</span>
   </div>
 
-  <header class="hero">
-    <h1 class="glitch"><span data-t="Sites">Sites</span><span class="b" data-t="&amp; Bots">&amp; Bots</span></h1>
-    <div class="hero-row">
-      <p>Moi c'est <mark>Kanki</mark>. Je code ton site ou ton bot Discord.</p>
-      <div class="cta"><a class="btn" href="#contact">Me contacter</a><a class="btn o" href="#work">Projets</a></div>
-    </div>
+  <!-- Sous-titre qui apparaît sous KANKI -->
+  <p class="sous-titre" id="sous-titre">
+    <span class="sous-titre-jp">カンキ</span>
+    <span class="sous-titre-trait" aria-hidden="true"></span>
+    <span>Studio web · Sites &amp; bots Discord</span>
+  </p>
+
+  <!-- Commandes discrètes, posées dans la bande noire du bas -->
+  <button class="son" id="son" type="button" aria-pressed="false" aria-label="Activer le son">
+    <span class="son-barres" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span class="son-texte">Son</span>
+  </button>
+  <button class="passer" id="passer" type="button">
+    <span>Passer l'intro</span><kbd>Espace</kbd>
+    <span class="passer-progres" aria-hidden="true"><i id="progres"></i></span>
+  </button>
+</div>
+
+<!-- Flash de transition (au-dessus de tout) -->
+<div class="flash" id="flash" aria-hidden="true"></div>
+
+<!-- ═════════════ SITE ═════════════ -->
+<div class="site" id="site">
+  <header class="entete" id="entete">
+    <a class="logo" href="#haut" aria-label="KANKI, haut de page"><span class="logo-k" id="logo-k" aria-hidden="true"></span><span class="logo-txt">KANKI</span></a>
+    <nav class="nav" aria-label="Navigation">
+      <a class="nav-lien" href="#services">Services</a>
+      <a class="nav-lien" href="#travaux">Travaux</a>
+      <a class="nav-lien" href="#palestine">Palestine</a>
+      <button class="nav-lien" type="button" data-rejouer>↺ Intro</button>
+      <a class="nav-cta" href="#contact">Contact</a>
+    </nav>
   </header>
-</div>
 
-<div class="tape" aria-hidden="true"><div>
-  <span>Sites vitrines</span><span>✕</span><span>Landing pages</span><span>✕</span><span>Bots Discord</span><span>✕</span><span>Sites de commu</span><span>✕</span>
-  <span>Sites vitrines</span><span>✕</span><span>Landing pages</span><span>✕</span><span>Bots Discord</span><span>✕</span><span>Sites de commu</span><span>✕</span>
-</div></div>
-
-<div class="wrap">
-  <section id="services">
-    <div class="lbl">// services</div>
-    <h2>Ce que je <i>code</i></h2>
-    <div class="svc">
-      <div class="frame" style="--c:var(--acid)"><div class="id"><span>01</span><b>●</b></div><h3>Site vitrine</h3></div>
-      <div class="frame" style="--c:var(--mag)"><div class="id"><span>02</span><b>●</b></div><h3>Landing page</h3></div>
-      <div class="frame" style="--c:var(--cyan)"><div class="id"><span>03</span><b>●</b></div><h3>Site de commu</h3></div>
-      <div class="frame" style="--c:var(--acid)"><div class="id"><span>04</span><b>●</b></div><h3>Bot Discord</h3></div>
-    </div>
-  </section>
-
-  <section id="bots" class="bot">
-    <div><div class="lbl">// bots</div><h2>Ton serveur en <i>pilote auto</i></h2></div>
-    <div class="frame term" style="--c:var(--mag)" aria-label="Exemple de journal d'un bot Discord">
-      <div class="top"><span>tonbot.log</span><span class="p">● en ligne</span></div>
-      <div><span class="p">/rang</span> → <span class="c">niv. 14</span> · #3</div>
-      <div><span class="m">level-up</span> → rôle <span class="c">Habitué</span></div>
-      <div><span class="m">live on</span> → annonce envoyée <span class="cursor"></span></div>
-    </div>
-  </section>
-
-  <section id="work">
-    <div class="lbl">// projets</div>
-    <h2>Déjà <i>en ligne</i></h2>
-    <div class="work">
-      <a class="frame proj" href="https://wiss-site.vercel.app/index.html" target="_blank" rel="noopener" style="--c:var(--acid);--pa:#FF3B30;--pb:#1A0708">
-        <div class="shot"><small>wiss-site.vercel.app</small><b>WISSKSRR</b></div>
-        <div class="body"><span>Commu Twitch de Wiss</span><span class="url">&gt; visiter ↗</span></div>
-      </a>
-      <a class="frame proj" href="https://delirance-site.vercel.app/" target="_blank" rel="noopener" style="--c:var(--mag);--pa:#A770FF;--pb:#0E0A1A">
-        <div class="shot"><small>delirance-site.vercel.app</small><b>La Délirance</b></div>
-        <div class="body"><span>Commu Twitch de Dimeh</span><span class="url">&gt; visiter ↗</span></div>
-      </a>
-    </div>
-  </section>
-
-  <section id="gaza">
-    <div class="frame gaza" style="--c:#149954">
-      <div class="txt">
-        <div class="flag" aria-hidden="true"><i style="background:#000"></i><i style="background:#fff"></i><i style="background:#149954"></i><i style="background:#E4312B"></i></div>
-        <h2>Free <span class="g">Pales</span><span class="r">tine</span></h2>
-        <p>Médecins Sans Frontières soigne les blessés à Gaza. Si tu peux, donne. Chaque geste compte.</p>
-        <a class="btn" href="https://soutenir.msf.fr/fonds-urgence-gaza/~mon-don" target="_blank" rel="noopener">Faire un don à MSF ↗</a>
-        <small>Le don va directement à MSF. Kanki ne touche rien.</small>
+  <main id="haut">
+    <!-- Accueil -->
+    <section class="hero">
+      <div class="hero-col">
+        <p class="hero-sur"><span class="hero-kanji" aria-hidden="true">侍</span>Studio web · Sites &amp; bots Discord</p>
+        <h1 class="hero-titre">
+          <span class="hero-bienvenue">Bienvenue chez</span>
+          <span class="hero-kanki" id="hero-kanki" role="img" aria-label="KANKI"></span>
+        </h1>
+        <p class="hero-texte">Des sites et des bots Discord taillés sur mesure. Nets, rapides, impossibles à oublier.</p>
+        <div class="hero-actions">
+          <a class="btn btn-rouge" href="#contact">Démarrer un projet <span class="fleche" aria-hidden="true">→</span></a>
+          <a class="btn btn-fantome" href="#travaux">Voir les travaux</a>
+        </div>
       </div>
-      <figure><img src="assets/gaza.webp" alt="Un enfant brandit le drapeau palestinien à la fenêtre d'un immeuble détruit" loading="lazy"></figure>
-    </div>
-  </section>
+      <p class="hero-vertical" aria-hidden="true">刀で描く<span></span>KANKI</p>
+      <a class="hero-defiler" href="#services" aria-label="Descendre vers les services"><i aria-hidden="true"></i>Défiler</a>
+    </section>
 
-  <section id="contact">
-    <div class="frame contact" style="--c:var(--acid)">
-      <div class="lbl">// contact</div>
-      <h2>Next <i>level</i> ?</h2>
-      <div class="mail"><code id="email">iliaswebpro@gmail.com</code><button class="btn" type="button" id="copy">Copier</button><a class="btn o" href="mailto:iliaswebpro@gmail.com">Envoyer un mail</a></div>
+    <div class="suite">
+      <!-- Services -->
+      <section class="section" id="services">
+        <p class="etiquette apparait"><b aria-hidden="true">壱</b>Services</p>
+        <h2 class="titre apparait">Ce que je <em>taille</em>.</h2>
+        <ol class="services apparait">
+          <li class="service"><span class="service-n">01</span><b>Sites vitrines</b><span class="service-tag">Commerces · indés</span></li>
+          <li class="service"><span class="service-n">02</span><b>Landing pages</b><span class="service-tag">Lancements</span></li>
+          <li class="service"><span class="service-n">03</span><b>Sites de commu</b><span class="service-tag">Streamers · Discord</span></li>
+          <li class="service"><span class="service-n">04</span><b>Bots Discord</b><span class="service-tag">Sur mesure</span></li>
+        </ol>
+      </section>
+
+      <!-- Travaux -->
+      <section class="section" id="travaux">
+        <p class="etiquette apparait"><b aria-hidden="true">弐</b>Travaux</p>
+        <h2 class="titre apparait">Déjà <em>en ligne</em>.</h2>
+        <div class="travaux">
+          <a class="projet p-wiss apparait" href="https://wiss-site.vercel.app/" target="_blank" rel="noopener">
+            <div class="projet-in" data-incline>
+              <div class="projet-fond"><img src="images/wiss.jpg" alt="" loading="lazy" width="720" height="1090"></div>
+              <div class="projet-haut"><span>Commu Twitch</span><span>2026</span></div>
+              <div class="projet-bas"><b>Wissksrr</b><p>Le QG de la commu de Wiss : classement, niveaux, appels trolls.</p><span class="aller">Visiter ↗</span></div>
+              <span class="reflet" aria-hidden="true"></span>
+            </div>
+          </a>
+          <a class="projet p-delir apparait" href="https://delirance-site.vercel.app/" target="_blank" rel="noopener">
+            <div class="projet-in" data-incline>
+              <div class="projet-fond"><img src="images/dimeh-detoure.webp" alt="" loading="lazy"></div>
+              <div class="projet-haut"><span>Commu Discord</span><span>2026</span></div>
+              <div class="projet-bas"><b>La Délirance</b><p>Dimeh au centre, son top 10 en orbite autour de lui.</p><span class="aller">Visiter ↗</span></div>
+              <span class="reflet" aria-hidden="true"></span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- Palestine -->
+      <section class="section" id="palestine">
+        <p class="etiquette apparait"><b aria-hidden="true">参</b>Soutien</p>
+        <div class="palestine apparait">
+          <div class="palestine-texte">
+            <div class="drapeau" aria-hidden="true"><i style="background:#000"></i><i style="background:#fff"></i><i style="background:#007A3D"></i><i style="background:#E4312B"></i></div>
+            <h3>Free <span>Pales</span><em>tine</em></h3>
+            <p>Médecins Sans Frontières soigne les blessés à Gaza. Si tu peux, donne. Chaque geste compte.</p>
+            <a class="btn-don" href="https://soutenir.msf.fr/fonds-urgence-gaza/~mon-don" target="_blank" rel="noopener">Faire un don à MSF ↗</a>
+            <small>Le don va directement à MSF. Kanki ne touche rien.</small>
+          </div>
+          <img src="images/gaza.webp" alt="Un enfant brandit le drapeau palestinien à la fenêtre d'un immeuble détruit" loading="lazy">
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="section contact" id="contact">
+        <p class="etiquette etiquette-centre apparait"><b aria-hidden="true">肆</b>Contact</p>
+        <h2 class="contact-titre apparait">Écris-<em>moi</em>.</h2>
+        <p class="contact-texte apparait">Un site, un bot, une idée. Je réponds vite.</p>
+        <div class="apparait">
+          <div class="mail"><code id="email">iliaswebpro@gmail.com</code><button type="button" id="copier">Copier</button></div>
+          <div class="contact-actions"><a class="btn btn-rouge" href="mailto:iliaswebpro@gmail.com">Ouvrir ma messagerie <span class="fleche" aria-hidden="true">→</span></a></div>
+        </div>
+      </section>
+
+      <footer class="pied-site">
+        <span>© 2026 KANKI</span>
+        <button class="pied-lien" type="button" data-rejouer>↺ Revoir l'intro</button>
+        <a class="pied-lien" href="mailto:iliaswebpro@gmail.com">iliaswebpro@gmail.com</a>
+      </footer>
     </div>
-  </section>
-  <footer><span>© 2026 Kanki</span><span>exit 0</span></footer>
+  </main>
 </div>
-<script>
-(function(){
-  var btn=document.getElementById("copy"), mail=document.getElementById("email").textContent.trim();
-  function done(ok){btn.textContent=ok?"Copié ✓":"Appui long sur l'adresse";setTimeout(function(){btn.textContent="Copier"},2000);}
-  function legacy(){
-    var t=document.createElement("textarea");t.value=mail;t.setAttribute("readonly","");
-    t.style.position="fixed";t.style.top="0";t.style.left="0";t.style.opacity="0";t.style.fontSize="16px";
-    document.body.appendChild(t);t.focus();t.select();t.setSelectionRange(0,mail.length);
-    var ok=false;try{ok=document.execCommand("copy");}catch(e){}
-    document.body.removeChild(t);return ok;
-  }
-  btn.addEventListener("click",function(){
-    if(navigator.clipboard&&window.isSecureContext){
-      navigator.clipboard.writeText(mail).then(function(){done(true)},function(){done(legacy())});
-    }else{done(legacy());}
-  });
-})();
-</script>
+
+<script src="script.js" defer></script>
 </body>
 </html>
