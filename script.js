@@ -85,17 +85,17 @@ const REGLAGES = {
     reflets: 0.7,           // force des reflets de la scène sur ses matériaux
     animations: {           // noms (ou morceaux de noms) des animations du .glb
       attente: 'idle|attente|stand|breath|ready',
-      // CORRECTIF BUG 2 : l'attaque Mixamo (« Slash ») est désactivée. Elle a sa propre trajectoire
-      // (le corps s'accroupit et frappe vers le bas) qui contredisait le tracé du K : les bras
-      // étaient tirés dans deux directions et le katana sautait d'une position à l'autre.
-      // Le coup est maintenant donné par le code (buste, élan, bras). Pour la réactiver : 'slash'.
-      attaque: ''
+      // CORRECTIF V2 : l'attaque du .glb est réactivée. Ce sont les bras animés qui donnent le coup,
+      // plus de cinématique inverse (elle tordait les bras pour suivre le K).
+      attaque: 'slash|attack|coup|strike|swing'
     },
     vitesseAttaque: 1.0,    // vitesse de lecture de l'animation de coup
-    avanceAttaque: 0.3,     // l'animation démarre ce nombre de secondes avant chaque coup du K
+    // CORRECTIF V2 : 'auto' = l'animation est calée pour que la lame descende pile pendant chaque trait du K
+    // (le moment de la frappe est mesuré dans l'animation au chargement). Mets 0 pour la lancer pile à T.trait1 / T.trait2.
+    avanceAttaque: 'auto',
     katana: 'auto',         // 'auto' : le katana du modèle s'il en a un, sinon le mien · 'perso' : toujours le mien
     inverserKatana: false,  // si le katana du modèle se retrouve à l'envers, passe à true
-    bras: true,             // les mains suivent le katana (si le modèle a un squelette)
+    bras: true,             // CORRECTIF V2 : le katana est tenu par la main droite du modèle (si elle existe)
     yeux: { afficher: true, hauteur: -0.07, avance: 0.15, ecart: 0.033 },  // yeux rouges, par rapport à l'os de la tête (réglés pour Death Samurai)
     // Crédit obligatoire pour un modèle sous licence CC BY (affiché en bas du site). Mets null si CC0.
     credit: { texte: 'Modèle 3D « Death Samurai Character » par Alexandru Jardan · CC BY 4.0', lien: 'https://sketchfab.com/3d-models/death-samurai-character-6e0a7667723747e0972488085f877bd6' }
@@ -369,7 +369,8 @@ async function demarrer3D() {
     os: {},               // os retrouvés : tête, buste, bras droit / gauche…
     repos: new Map(),     // orientation de repos des os qu'on modifie
     mixer: null, actions: {},
-    tientKatana: false    // les mains tiennent le katana (cinématique inverse)
+    tientKatana: false,   // CORRECTIF V2 : le katana suit la main droite (sans cinématique inverse)
+    paume: new V3(), qPrise: new THREE.Quaternion(), tFrappe: null   // prise du katana et moment de la frappe, mesurés au chargement
   };
 
   /* Les yeux rouges (posés sur la tête du modèle) */
@@ -512,6 +513,48 @@ async function demarrer3D() {
     POINTE_LOCALE.set(0, LAME.base + LAME.longueur, 0);
   }
 
+  /* CORRECTIF V2 : mesure une fois, au chargement, comment le katana doit être tenu.
+     - la paume : entre le poignet et la base du majeur ;
+     - l'axe de la lame dans le repère de la main : de la main gauche vers la main droite, quand les deux
+       tiennent la poignée dans l'animation (copier la rotation brute de l'os ferait sortir la lame dans l'axe des doigts) ;
+     - le moment de la frappe : l'instant où la main droite descend le plus vite dans l'animation d'attaque. */
+  function calibrerPrise(racine) {
+    const mD = perso.os.d.main, mG = perso.os.g && perso.os.g.main, kH = MODELE.hauteur / 2.05;
+    const doigt = mD.children.find((o) => /middle|majeur/i.test(o.name)) || mD.children.find((o) => o.isBone);
+    perso.paume.copy(doigt ? doigt.position : new V3()).multiplyScalar(0.55);
+    const A = perso.actions, toutes = Object.values(A);
+    const poser = (action, temps) => {
+      toutes.forEach((a) => a.setEffectiveWeight(0));
+      if (action) { action.setEffectiveWeight(1); action.time = temps; }
+      perso.mixer && perso.mixer.update(0); racine.updateMatrixWorld(true);
+    };
+    const axe = new V3(), q = new THREE.Quaternion(); let n = 0;
+    [A.attente, A.garde, A.attaque1].filter(Boolean).forEach((action) => {
+      const duree = action.getClip().duration;
+      for (let k = 0; k <= 12; k++) {
+        poser(action, (duree * k) / 12);
+        if (!mG) continue;
+        const pD = mD.localToWorld(perso.paume.clone()), pG = mG.getWorldPosition(new V3());
+        const d = pD.distanceTo(pG);
+        if (d < 0.04 * kH || d > 0.4 * kH) continue;                   // les deux mains ne sont pas sur la poignée
+        axe.add(pD.sub(pG).normalize().applyQuaternion(mD.getWorldQuaternion(q).invert())); n++;
+      }
+    });
+    if (n) axe.normalize(); else axe.set(0, 0, 1);
+    perso.qPrise.setFromUnitVectors(new V3(0, 1, 0), axe);
+    // Moment de la frappe
+    if (A.attaque1) {
+      const duree = A.attaque1.getClip().duration; let yPrec = null, vMin = 0;
+      for (let tt = 0; tt <= duree + 1e-6; tt += 1 / 60) {
+        poser(A.attaque1, tt);
+        const y = mD.getWorldPosition(new V3()).y;
+        if (yPrec !== null && (y - yPrec) * 60 < vMin) { vMin = (y - yPrec) * 60; perso.tFrappe = tt; }
+        yPrec = y;
+      }
+    }
+    poser(null, 0);
+  }
+
   /* Installe le modèle dans la scène */
   function installerModele(gltf) {
     const racine = gltf.scene;
@@ -554,8 +597,8 @@ async function demarrer3D() {
     perso.os.tete = trouverOs(objets, ['head']);
     perso.os.buste = trouverOs(objets, ['spine2', 'spine02', 'upperchest', 'chest', 'spine1', 'spine01', 'spine']);
     perso.rig = !!(perso.os.d && perso.os.g);
-    [perso.os.tete, perso.os.buste, ...['d', 'g'].flatMap((c) => perso.os[c] ? [perso.os[c].haut, perso.os[c].avant] : [])]
-      .filter(Boolean).forEach((os) => perso.repos.set(os, os.quaternion.clone()));
+    // CORRECTIF V2 : seuls le buste et la tête sont retouchés par le code (plus les bras)
+    [perso.os.tete, perso.os.buste].filter(Boolean).forEach((os) => perso.repos.set(os, os.quaternion.clone()));
 
     // Animations intégrées
     const clips = gltf.animations.map(figerDeplacement);
@@ -570,6 +613,8 @@ async function demarrer3D() {
       if (attaque) {
         perso.actions.attaque1 = action(attaque);
         perso.actions.attaque2 = action(attaque.clone());               // 2e coup : sa propre copie, pour pouvoir fondre les deux
+        // CORRECTIF V2 : chaque coup est joué une seule fois et reste sur sa dernière image (pas de retour à la frame 0)
+        [perso.actions.attaque1, perso.actions.attaque2].forEach((a) => { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; });
         if (!attente) perso.actions.garde = action(attaque.clone());    // pas d'animation de repos : 1re image de l'attaque = garde
       }
     }
@@ -584,13 +629,15 @@ async function demarrer3D() {
       else { sabres.forEach((s) => { s.visible = false; }); infoKatana = 'le mien (celui du modèle est soudé au squelette, il est masqué)'; }
     }
     if (!perso.tientKatana) { katana.visible = false; infoKatana = 'aucun (pas de bras exploitables : le modèle garde le sien s\'il en a un)'; }
+    if (perso.tientKatana) calibrerPrise(racine);
 
     perso.charge = true;
     console.info(
       '%c KANKI · samouraï chargé %c\n' +
       '  Animations trouvées : ' + (clips.map((c) => '« ' + c.name + ' » (' + c.duration.toFixed(1) + ' s)').join(', ') || 'aucune') + '\n' +
       '  → repos : ' + (attente ? attente.name : (attaque ? '1re image de l\'attaque' : 'pose d\'origine')) + '   → coup de katana : ' + (attaque ? attaque.name : 'aucune, mouvement généré par le code') + '\n' +
-      '  Squelette : ' + (perso.rig ? 'oui (bras ' + perso.os.d.haut.name + ', tête ' + (perso.os.tete ? perso.os.tete.name : '?') + ')' : 'non trouvé') + '\n' +
+      '  Squelette : ' + (perso.rig ? 'oui (main ' + perso.os.d.main.name + ', tête ' + (perso.os.tete ? perso.os.tete.name : '?') + ')' : 'non trouvé') + '\n' +
+      '  Frappe mesurée dans l\'animation : ' + (perso.tFrappe !== null ? perso.tFrappe.toFixed(2) + ' s' : '—') + '\n' +
       '  Katana : ' + infoKatana,
       'background:#ff1f35;color:#fff;font-weight:700;padding:3px 8px;border-radius:3px', '');
   }
@@ -1168,18 +1215,7 @@ async function demarrer3D() {
   const progTrait1 = (t) => { const u = plage(t, T.trait1, TPS.fin1); return 1 - Math.pow(1 - u, 1.8); };
   const progTrait2 = (t) => { const u = plage(t, T.trait2, TPS.fin2); return 0.75 * sinus(u) + 0.25 * u; };
 
-  /* Cinématique inverse à deux os (épaule → coude → main) */
-  const ik = (epaule, cible, a, b, pole) => {
-    const d = cible.clone().sub(epaule); const dist = clamp(d.length(), 0.05, a + b - 0.002); d.normalize();
-    const main = epaule.clone().addScaledVector(d, dist);
-    const cosA = clamp((a * a + dist * dist - b * b) / (2 * a * dist), -1, 1), sinA = Math.sqrt(1 - cosA * cosA);
-    const perp = pole.clone().addScaledVector(d, -pole.dot(d)).normalize();
-    const coude = epaule.clone().addScaledVector(d, a * cosA).addScaledVector(perp, a * sinA);
-    return { coude, main };
-  };
-  let tranchant = new V3(0, 0, 1), pointePrec = null;
-  const decalagePrise = new V3();      // décalage lissé du katana vers la main (voir CORRECTIF BUG 1 + 2)
-  const mBase = new THREE.Matrix4();
+  // CORRECTIF V2 : la cinématique inverse des bras (ik, viser, ikPrec, tenir) est supprimée.
   const _a = new V3(), _b = new V3(), _q = new THREE.Quaternion(), _qp = new THREE.Quaternion(), _qw = new THREE.Quaternion();
   const AXE_X = new V3(1, 0, 0), AXE_Y = new V3(0, 1, 0);
   const enveloppe = (t, a, b) => Math.sin(Math.PI * plage(t, a, b));
@@ -1193,39 +1229,26 @@ async function demarrer3D() {
     os.quaternion.copy(_qp.multiply(_q));
     os.updateMatrixWorld(true);
   }
-  /* Oriente un os pour que l'os suivant (son enfant) passe par un point donné.
-     CORRECTIF BUG 2 : on repart de la solution de l'image précédente (et pas de la pose de l'animation).
-     Avant, quand le bras devait tourner de presque 180° (katana levé au-dessus de la tête), le calcul
-     « plus court chemin » choisissait un axe différent d'une image à l'autre : le bras et l'épaulière
-     vrillaient d'un coup puis revenaient. Un léger rappel (8 %) vers la pose animée évite toute dérive. */
-  const ikPrec = new Map();
-  function viser(os, enfant, cibleMonde) {
-    const prec = ikPrec.get(os);
-    if (prec) { os.quaternion.slerp(prec, 0.92); os.updateMatrixWorld(true); }
-    os.getWorldPosition(_a); enfant.getWorldPosition(_b);
-    const v1 = _b.sub(_a).normalize(), v2 = cibleMonde.clone().sub(_a).normalize();
-    _q.setFromUnitVectors(v1, v2);
-    os.getWorldQuaternion(_qw); _q.multiply(_qw);
-    os.parent.getWorldQuaternion(_qp).invert();
-    os.quaternion.copy(_qp.multiply(_q));
-    os.updateMatrixWorld(true);
-    ikPrec.set(os, os.quaternion.clone());
-  }
-
   /* Animations du .glb, pilotées par la timeline (fonctionne aussi quand on saute ou rejoue l'intro) */
   function animer(t, temps) {
-    perso.repos.forEach((q, os) => os.quaternion.copy(q));       // on repart de la pose de repos à chaque image
-    if (!perso.mixer) return;
+    // CORRECTIF V2 : on repart de la dernière pose produite par l'animation (et non plus de la pose d'origine).
+    // Three.js n'écrit un os que si sa valeur animée a changé depuis l'image précédente : quand l'Idle tient une
+    // clé immobile, l'os restait sur la pose d'origine + les retouches → le haut du corps sautait de ~4° par moments.
+    perso.repos.forEach((q, os) => os.quaternion.copy(q));
+    if (!perso.mixer) return 0;
     const A = perso.actions;
     let poidsAttaque = 0;
     if (A.attaque1) {
       const duree = A.attaque1.getClip().duration / MODELE.vitesseAttaque;
-      // CORRECTIF BUG 2 : un seul coup joué à la fois. Le 2e coup coupe le 1er (fondu de 0,15 s)
-      // au lieu de se superposer à lui ; chaque coup est joué une fois, sans boucle (équivalent LoopOnce + clamp).
-      const debut1 = T.trait1 - MODELE.avanceAttaque, debut2 = T.trait2 - MODELE.avanceAttaque;
-      [[A.attaque1, debut1, Math.min(debut1 + duree, debut2 + 0.15)], [A.attaque2, debut2, debut2 + duree]].forEach(([action, debut, fin]) => {
-        const u = t - debut;
-        const w = t < debut || t > fin ? 0 : clamp(Math.min(u / 0.15, (fin - t) / 0.15));
+      // CORRECTIF V2 : début de chaque coup. En 'auto', la frappe mesurée tombe au milieu du trait du K.
+      const debut = (trait, dureeTrait) => trait - (MODELE.avanceAttaque === 'auto'
+        ? Math.max(0, (perso.tFrappe ?? 0.3) / MODELE.vitesseAttaque - dureeTrait * 0.5)
+        : MODELE.avanceAttaque);
+      const debut1 = debut(T.trait1, D.trait1), debut2 = debut(T.trait2, D.trait2);
+      // Un seul coup à la fois : le 2e coup remplace le 1er par un fondu enchaîné de 0,15 s
+      [[A.attaque1, debut1, Math.min(debut1 + duree, debut2 + 0.15)], [A.attaque2, debut2, debut2 + duree]].forEach(([action, debutCoup, fin]) => {
+        const u = t - debutCoup;
+        const w = t < debutCoup || t > fin ? 0 : clamp(Math.min(u / 0.15, (fin - t) / 0.15));
         action.setEffectiveWeight(w); action.time = clamp(u, 0, duree) * MODELE.vitesseAttaque;
         poidsAttaque += w;
       });
@@ -1234,18 +1257,8 @@ async function demarrer3D() {
     if (A.attente) { A.attente.setEffectiveWeight(poidsRepos); A.attente.time = temps % A.attente.getClip().duration; }
     if (A.garde) { A.garde.setEffectiveWeight(poidsRepos); A.garde.time = 0; }
     perso.mixer.update(0);
-  }
-
-  /* Oriente le katana : la lame pointe vers « dir », le tranchant suit le mouvement */
-  function orienterKatana(dir) {
-    tranchant.addScaledVector(dir, -tranchant.dot(dir));
-    // CORRECTIF : si le tranchant devient parallèle à la lame, on en reprend un perpendiculaire stable
-    if (tranchant.lengthSq() < 1e-6) tranchant.crossVectors(dir, AXE_X).lengthSq() > 1e-6 ? tranchant.crossVectors(dir, AXE_X) : tranchant.crossVectors(dir, AXE_Y);
-    tranchant.normalize();
-    const ax = tranchant.clone().negate(), az = new V3().crossVectors(ax, dir).normalize();
-    ax.crossVectors(dir, az).normalize();
-    mBase.makeBasis(ax, dir, az);
-    katana.quaternion.setFromRotationMatrix(mBase);
+    perso.repos.forEach((q, os) => q.copy(os.quaternion));       // CORRECTIF V2 : pose animée pure, mémorisée avant les retouches du buste / de la tête
+    return clamp(poidsAttaque);
   }
 
   function poserSamourai(t, dt, temps) {
@@ -1265,72 +1278,40 @@ async function demarrer3D() {
     mouvement.rotation.set(0, 0, 0);
 
     if (perso.charge) {
-      animer(t, temps);
+      // CORRECTIF V2 : ordre d'application — animer() → buste → tête, rien ne touche aux os après.
+      const poidsAttaque = animer(t, temps);
       mouvement.updateMatrixWorld(true);
       const droite = AXE_X.clone().applyQuaternion(samourai.quaternion);
+      const leger = 1 - 0.6 * poidsAttaque;                          // pendant un coup, l'animation mène : torsion réduite
       if (perso.rig) {
-        // Le buste suit la lame, la tête se relève au moment où les yeux s'allument
-        tournerOs(perso.os.buste, AXE_Y, torsion * 0.8);
-        tournerOs(perso.os.buste, droite, penche + souffle * 0.012);
-        tournerOs(perso.os.tete, droite, lerp(0.42, -0.06, releve) - penche * 0.5);
-        tournerOs(perso.os.tete, AXE_Y, -torsion * 0.4 + Math.sin(temps * 0.5) * 0.02);
+        // Légère torsion du buste vers le K, la tête se relève au moment où les yeux s'allument
+        tournerOs(perso.os.buste, AXE_Y, torsion * 0.8 * leger);
+        tournerOs(perso.os.buste, droite, (penche + souffle * 0.012) * leger);
+        tournerOs(perso.os.tete, droite, lerp(0.42, -0.06, releve) - penche * 0.5 * leger);
+        tournerOs(perso.os.tete, AXE_Y, -torsion * 0.4 * leger + Math.sin(temps * 0.5) * 0.02);
       } else {
-        // Pas de squelette : tout le corps accompagne le tracé du K, en douceur
+        // Pas de squelette (CORRECTIF V2 : ce bloc ne s'exécute que si perso.rig est faux)
         mouvement.rotation.set(penche * 0.5 + (1 - releve) * 0.06, torsion * 0.6, Math.sin(temps * 0.6) * 0.008);
       }
     }
     samourai.updateMatrixWorld(true);
 
-    // Point d'appui des mains : devant la poitrine, entre les épaules
-    const pivot = new V3(0, 1.38 * kH, 0.44);
+    // CORRECTIF V2 : le katana suit la main droite du modèle, sans cinématique inverse.
+    // Position = la paume ; orientation = celle de l'os de la main + l'angle de prise mesuré au chargement.
     if (perso.tientKatana) {
-      perso.os.d.haut.getWorldPosition(_a); perso.os.g.haut.getWorldPosition(_b);
-      pivot.copy(samourai.worldToLocal(_a.add(_b).multiplyScalar(0.5))).add(new V3(0, -0.22 * kH, 0.26 * kH));
+      const main = perso.os.d.main;
+      const paume = main.localToWorld(perso.paume.clone());
+      main.getWorldQuaternion(_qw).multiply(perso.qPrise);
+      samourai.getWorldQuaternion(_qp).invert();
+      katana.quaternion.copy(_qp.multiply(_qw));
+      katana.position.copy(samourai.worldToLocal(paume)).sub(MAIN_AVANT.clone().applyQuaternion(katana.quaternion));
     }
-    const dir = pointe.clone().sub(pivot).normalize();
-    // Le tranchant suit le mouvement (la lame coupe dans le bon sens)
-    if (pointePrec) {
-      const vit = pointe.clone().sub(pointePrec);
-      const perp = vit.addScaledVector(dir, -vit.dot(dir));
-      if (perp.lengthSq() > 1e-7) tranchant.lerp(perp.normalize(), 0.35);
-    }
-    pointePrec = pointe.clone();
-    orienterKatana(dir);
-    katana.position.copy(pointe).sub(POINTE_LOCALE.clone().applyQuaternion(katana.quaternion));
 
     // Les yeux, posés sur l'os de la tête
     yeuxGroupe.visible = perso.charge && MODELE.yeux.afficher;
     if (perso.os.tete) { perso.os.tete.getWorldPosition(_a); yeuxGroupe.position.copy(samourai.worldToLocal(_a)); }
     else yeuxGroupe.position.set(0, MODELE.hauteur * 0.87, 0);
     yeuxGroupe.position.y += MODELE.yeux.hauteur; yeuxGroupe.position.z += MODELE.yeux.avance;
-
-    // Les mains tiennent la poignée (cinématique inverse sur les os du modèle)
-    if (perso.tientKatana) {
-      const tenir = (cote, prise) => {
-        const s = cote === 'd' ? -1 : 1, o = perso.os[cote];
-        const S = o.haut.getWorldPosition(new V3()), E = o.avant.getWorldPosition(new V3()), H = o.main.getWorldPosition(new V3());
-        const cible = katana.localToWorld(prise.clone());
-        cible.addScaledVector(S.clone().sub(cible).normalize(), 0.07 * kH);      // le poignet est un peu avant la prise
-        const pole = new V3(s * 0.75, -1, -0.35).applyQuaternion(samourai.quaternion);
-        const r = ik(S, cible, S.distanceTo(E), E.distanceTo(H), pole);
-        viser(o.haut, o.avant, r.coude);
-        viser(o.avant, o.main, r.main);
-        return o.main.getWorldPosition(new V3()).sub(cible);                   // écart restant si le bras est trop court
-      };
-      // CORRECTIF BUG 1 + 2 : quand le bras est trop court pour la poignée, le katana se rapproche
-      // de la main EN DOUCEUR (lissage ~0,1 s, 25 cm max). Avant, il s'y collait instantanément :
-      // la lame sautait d'un coup, ce qui faisait vriller les bras et dessinait de grands blocs blancs.
-      const ecart = samourai.worldToLocal(tenir('d', MAIN_AVANT).add(samourai.getWorldPosition(new V3())));
-      decalagePrise.lerp(ecart, 1 - Math.exp(-dt / 0.1));
-      if (decalagePrise.length() > 0.25 * kH) decalagePrise.setLength(0.25 * kH);
-      if (decalagePrise.lengthSq() > 1e-8) {
-        const prise = samourai.worldToLocal(katana.localToWorld(MAIN_AVANT.clone())).add(decalagePrise);
-        orienterKatana(pointe.clone().sub(prise).normalize());
-        katana.position.copy(prise).sub(MAIN_AVANT.clone().applyQuaternion(katana.quaternion));
-        tenir('d', MAIN_AVANT);
-      }
-      tenir('g', MAIN_ARRIERE);
-    }
   }
 
   /* ==========================================================================
@@ -1573,7 +1554,7 @@ async function demarrer3D() {
   function rejouer() {
     if (mode !== 'site') return;
     EVENEMENTS.forEach((e) => { e.fait = false; });
-    t = 0; mode = 'intro'; sortieLancee = false; pointePrec = null; swoosh.pret = false;
+    t = 0; mode = 'intro'; sortieLancee = false; swoosh.pret = false;
     corps.classList.remove('en-site'); corps.classList.add('en-intro');
     intro.classList.add('cinema');
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -1606,7 +1587,7 @@ async function demarrer3D() {
 
   // Outils de test : window.kanki.aller(5.4) fige l'intro à 5,4 s
   window.kanki = {
-    aller(sec) { EVENEMENTS.forEach((e) => { e.fait = e.t < sec; }); t = sec; pause = true; swoosh.pret = false; pointePrec = null; mettreAJour(0); swoosh.pret = false; mettreAJour(0); rendre(); },
+    aller(sec) { EVENEMENTS.forEach((e) => { e.fait = e.t < sec; }); t = sec; pause = true; swoosh.pret = false; mettreAJour(0); swoosh.pret = false; mettreAJour(0); rendre(); },
     reprendre() { pause = false; }, passer, rejouer
   };
 
